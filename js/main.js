@@ -2,5 +2,5 @@ const forth = new Forth();
 
 function init()
 {
-	forth.exec(`2 dup drop drop`);
+	forth.exec(`: sq5 5 dup * ;`);
 }
