@@ -2,6 +2,7 @@ class Forth {
 	constructor() {
 		this.ops = {};
 		this.stack = [];
+		this.prog = [];
 
 		/* ====== [STACK OPERATIONS] ====== */
 		this.ops['dup'] = (th) => {
@@ -9,6 +10,13 @@ class Forth {
 		};
 		this.ops['drop'] = (th) => {
 			this.pop();
+		};
+		/* ====== [COMMENT] ====== */
+		this.ops['('] = (th) => {
+			let tok = '(';
+			while (tok !== ')') {
+				tok = this.next_cmd();
+			}
 		};
 		/* ====== [ARITHMETICS] ====== */
 		this.ops['+'] = (th) => { th.push(th.pop() + th.pop()); };
@@ -25,6 +33,43 @@ class Forth {
 		this.ops['=='] = (th) => { th.push(th.pop() === th.pop()); };
 		this.ops['!='] = (th) => { th.push(th.pop() !== th.pop()); };
 		this.ops['not'] = (th) => { th.push(!th.pop()); };
+		/* ====== [BRANCHING] ====== */
+		this.ops['if'] = (th) => {
+			let tok;
+			if (this.pop()) {
+				// condition is true
+				while (true) {
+					tok = this.next_cmd();
+					if (tok === 'else') break;
+					if (tok === 'then') return;
+					this.operate(tok);
+				}
+				// else
+				while (this.next_cmd() !== 'then');
+			} else {
+				// condition is false
+				while (true) {
+					tok = this.next_cmd();
+					if (tok === 'else') break;
+					if (tok === 'then') return;
+				}
+				// else
+				while (true) {
+					tok = this.next_cmd();
+					if (tok === 'then') return;
+					this.operate(tok);
+				}
+			}
+		};
+	}
+
+	next_cmd(loop) {
+		if (!loop && this.end()) throw new Error('Unexpected end of program.');
+		return this.prog.pop();
+	}
+
+	end() {
+		return this.prog.length === 0;
 	}
 
 	pop() {
@@ -51,12 +96,14 @@ class Forth {
 	}
 
 	exec(text) {
-		let tok = text.split(/\s+/);
-		console.log(tok);
-		for (let i = 0; i < tok.length; ++i) {
-			this.operate(tok[i]);
+		this.prog = text.split(/\s+/).reverse();
+		this.prog = this.prog.map((el) => { return el.toLowerCase(); });
+		while (this.prog.length) {
+			let tok = this.next_cmd(true);
+			this.operate(tok);
 		}
-		return last(this.stack);
+		console.log(this.stack);
+		//return last(this.stack);
 	}
 }
 
