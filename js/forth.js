@@ -30,8 +30,36 @@ class Forth {
 		this.ops['drop'] = (th) => {
 			th.pop();
 		};
+		this.ops['nip'] = (th) => {
+			th.stack[th.stack.length - 2] = last(th.stack);
+			th.pop();
+		};
+		this.ops['swap'] = (th) => {
+			let t = last(th.stack);
+			th.stack[th.stack.length - 1] = th.stack[th.stack.length - 2];
+			th.stack[th.stack.length - 2] = t;
+		}
+		this.ops['2swap'] = (th) => {
+			let [n4, n3] = th.stack.slice(-2);
+			th.stack[th.stack.length - 1] = th.stack[th.stack.length - 3];
+			th.stack[th.stack.length - 2] = th.stack[th.stack.length - 4];
+			th.stack[th.stack.length - 3] = n3;
+			th.stack[th.stack.length - 4] = n4;
+		}
+		// rotates stack left [1,2,3] -> [2,3,1]
+		this.ops['rol'] = (th) => {
+			let num = th.pop();
+			let head = th.stack.splice(num);
+			th.stack = head.concat(th.stack);
+		}
+		// rotates stack right [1,2,3] -> [3,1,2]
+		this.ops['ror'] = (th) => {
+			let num = th.pop();
+			let tail = th.stack.splice(-num);
+			th.stack = tail.concat(th.stack);
+		}
 		this.ops['.'] = (th) => {
-			console.log(th.pop());
+			console.log(last(th.stack));
 		}
 		this.ops['.s'] = (th) => {
 			let st = this.stack.map((el) => {return el.toString();}).join(' ');
@@ -56,6 +84,8 @@ class Forth {
 			let n = th.pop();
 			th.push(th.pop() ** n);
 		};
+		this.ops['++'] = (th) => { th.stack[th.stack.length-1]++; };
+		this.ops['--'] = (th) => { th.stack[th.stack.length-1]--; };
 		/* ====== [LOGIC] ====== */
 		this.ops['&&'] = (th) => { th.push(th.pop() && th.pop()); };
 		this.ops['||'] = (th) => { th.push(th.pop() || th.pop()); };
@@ -96,6 +126,23 @@ class Forth {
 					if (tok === 'then') return;
 					th.operate(tok);
 				}
+			}
+		};
+		this.ops['while'] = (th) => {
+			let tok;
+			let cond = [];
+			let body = [];
+			while ((tok = th.next_cmd()) !== 'do') {
+				cond.push(tok);
+			}
+			cond = th.compile(cond);
+			while ((tok = th.next_cmd()) !== 'done') {
+				body.push(tok);
+			}
+			body = th.compile(body);
+			// actual while body. Damn, it's so C!
+			while (cond(th), last(th.stack)) {
+				body(th);
 			}
 		};
 		/* ====== [FUNCTIONS] ====== */
