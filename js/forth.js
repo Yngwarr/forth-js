@@ -4,7 +4,107 @@ class Forth {
 		this.stack = [];
 		this.prog = [];
 		this.ctxs = { forth: this };
-
+		this.export_forth();
+	}
+	/* 
+	 * Underflow-aware version of this.prog.pop().
+	 * Pass true to be unaware again (used in exec).
+	 */
+	next_cmd(loop) {
+		if (!loop && this.end()) {
+			throw new Error('Unexpected end of the program.');
+		}
+		return this.prog.pop();
+	}
+	/* true when the end of program is reached */
+	end() {
+		return this.prog.length === 0;
+	}
+	/* underflow-aware shortcut for this.stack.pop() */
+	pop() {
+		if (this.stack.length === 0) throw new Error('Stack underflow.');
+		return this.stack.pop();
+	}
+	/* shortcut for this.stack.push() */
+	push(val) {
+		this.stack.push(val);
+	}
+	/* checks weather the operation is known by an interpreter */
+	is_op(op) {
+		return Object.keys(this.ops).includes(op);
+	}
+	/*
+	 * Execute a given command. Takes string as a parameter and executes it
+	 * if known. Otherwise, converts it to a number and pushes to stack.
+	 */
+	operate(tok) {
+		if (this.is_op(tok)) {
+			this.ops[tok](this.ctxs);
+		} else {
+			if (!is_num(tok)) {
+				throw new Error(`Unknown word: '${tok}'.`);
+			}
+			this.push(parseInt(tok));
+		}
+	}
+	/* tokenize and execute a program given as a text */
+	exec(text) {
+		this.prog = text.split(/\s+/).reverse();
+		this.prog = this.prog.map((el) => { return el.toLowerCase(); });
+		while (this.prog.length) {
+			let tok = this.next_cmd(true);
+			this.operate(tok);
+		}
+		//console.log(this.stack);
+	}
+	/* creates an executable function from a list of tokens */
+	compile(prog) {
+		let fun = [];
+		prog.reverse();
+		while (prog.length !== 0) {
+			let op = prog.pop();
+			if (this.is_op(op)) {
+				fun.push(`ctx.forth.ops['${op}'](ctx);`);
+			} else {
+				if (!is_num(op)) {
+					throw new Error(`Unknown word: '${op}'.`);
+				}
+				fun.push(`ctx.forth.push(${parseInt(op)});`);
+			}
+		}
+		fun = `(ctx) => { ${fun.join(' ')} }`;
+		return eval(fun);
+	}
+	/* loads a module with functions and context */
+	modload(module) {
+		if (module.ctx_name === undefined) {
+			throw new Error('No ctx_name given, make sure your module exports it.');
+		}
+		if (module.ops === undefined) {
+			throw new Error('No ops given, make sure your module exports it.');
+		}
+		this.ctxs[module.ctx_name] = module;
+		let mops = module.ops;
+		for (let n in mops) {
+			if (Object.keys(this.ops).includes(n)) {
+				console.warn(`Module ${module.ctx_name} overwrites ${n}.`);
+			}
+			this.ops[n] = mops[n];
+		}
+	}
+	/* returns a list of loaded modules, handy for dependency management */
+	mods() {
+		return Object.keys(this.ctxs);
+	}
+	/* throws an exception on stack underflow */
+	chk_underflow(n) {
+		n = n || 1;
+		if (this.stack.length < n) {
+			throw new Error('Stack underflow' + (n === 1 ? '.'
+					: `, expected at least ${n} elements.`));
+		}
+	}
+	export_forth() {
 		// used by : and :noname
 		let read_fn = (th) => {
 			let prog = [];
@@ -166,7 +266,8 @@ class Forth {
 				}
 			}
 		};
-		this.ops['while'] = ({forth: f}) => {
+		this.ops['while'] = (ctx) => {
+			const f = ctx.forth;
 			let tok;
 			let cond = [];
 			let body = [];
@@ -179,8 +280,9 @@ class Forth {
 			}
 			body = f.compile(body);
 			// actual while body. Damn, it's so C!
-			while (cond({forth: f}), last(f.stack)) {
-				body({forth: f});
+			//while (cond(ctx), last(f.stack)) {
+			while (cond(ctx), f.pop()) {
+				body(ctx);
 			}
 		};
 		/* ====== [FUNCTIONS] ====== */
@@ -193,100 +295,6 @@ class Forth {
 		};
 		this.ops[':noname'] = ({forth: f}) => { f.push(read_fn(f)); };
 		this.ops['execute'] = ({forth: f}) => { f.pop()(f); }
-	}
-	/* 
-	 * Underflow-aware version of this.prog.pop().
-	 * Pass true to be unaware again (used in exec).
-	 */
-	next_cmd(loop) {
-		if (!loop && this.end()) {
-			throw new Error('Unexpected end of the program.');
-		}
-		return this.prog.pop();
-	}
-	/* true when the end of program is reached */
-	end() {
-		return this.prog.length === 0;
-	}
-	/* underflow-aware shortcut for this.stack.pop() */
-	pop() {
-		if (this.stack.length === 0) throw new Error('Stack underflow.');
-		return this.stack.pop();
-	}
-	/* shortcut for this.stack.push() */
-	push(val) {
-		this.stack.push(val);
-	}
-	/* checks weather the operation is known by an interpreter */
-	is_op(op) {
-		return Object.keys(this.ops).includes(op);
-	}
-	/*
-	 * Execute a given command. Takes string as a parameter and executes it
-	 * if known. Otherwise, converts it to a number and pushes to stack.
-	 */
-	operate(tok) {
-		if (this.is_op(tok)) {
-			this.ops[tok](this.ctxs);
-		} else {
-			if (!is_num(tok)) {
-				throw new Error(`Unknown word: '${tok}'.`);
-			}
-			this.push(parseInt(tok));
-		}
-	}
-	/* tokenize and execute a program given as a text */
-	exec(text) {
-		this.prog = text.split(/\s+/).reverse();
-		this.prog = this.prog.map((el) => { return el.toLowerCase(); });
-		while (this.prog.length) {
-			let tok = this.next_cmd(true);
-			this.operate(tok);
-		}
-		//console.log(this.stack);
-	}
-	/* creates an executable function from a list of tokens */
-	compile(prog) {
-		let fun = [];
-		prog.reverse();
-		while (prog.length !== 0) {
-			let op = prog.pop();
-			if (this.is_op(op)) {
-				fun.push(`ctx.forth.ops['${op}'](ctx);`);
-			} else {
-				if (!is_num(op)) {
-					throw new Error(`Unknown word: '${op}'.`);
-				}
-				fun.push(`ctx.forth.push(${parseInt(op)});`);
-			}
-		}
-		fun = `(ctx) => { ${fun.join(' ')} }`;
-		return eval(fun);
-	}
-	/* loads a module with functions and context */
-	modload(module) {
-		if (module.ctx_name === undefined) {
-			throw new Error('No ctx_name given, make sure your module exports it.');
-		}
-		if (module.ops === undefined) {
-			throw new Error('No ops given, make sure your module exports it.');
-		}
-		this.ctxs[module.ctx_name] = module;
-		let mops = module.ops;
-		for (let n in mops) {
-			if (Object.keys(this.ops).includes(n)) {
-				console.warning(`Module ${module.ctx_name} overwrites ${n}.`);
-			}
-			this.ops[n] = mops[n];
-		}
-	}
-	/* throws an exception on stack underflow */
-	chk_underflow(n) {
-		n = n || 1;
-		if (this.stack.length < n) {
-			throw new Error('Stack underflow' + (n === 1 ? '.'
-					: `, expected at least ${n} elements.`));
-		}
 	}
 }
 

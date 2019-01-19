@@ -17,7 +17,7 @@ html {
 }
 
 #disp {
-	background: #5f5;
+	background: #fff;
 	width: 100vw;
 	height: 50vh;
 }
@@ -27,7 +27,8 @@ html {
 #repl {
 	display: flex;
 	flex-flow: column nowrap;
-	background: #f55;
+	background: #000;
+	color: #fff;
 	width: 100vw;
 	height: 50vh;
 	font-size: 1.4rem;
@@ -56,7 +57,10 @@ html {
 
 #input {
 	background: transparent;
+	color: #fff;
 	border: none;
+	border-bottom: 1px solid #fff;
+	padding-bottom: .5rem;
 	font-family: monospace;
 	width: 100%;
 }
@@ -64,3 +68,19 @@ html {
 #input:focus {
 	outline: none;
 }
+
+/******** SVG ********/
+
+svg {
+	margin: 2rem auto;
+}
+
+svg rect {
+	stroke-width: 0;
+	fill: #000;
+}
+
+svg rect[data-color='0'] { fill: #181010; }
+svg rect[data-color='1'] { fill: #84739c; }
+svg rect[data-color='2'] { fill: #f7b58c; }
+svg rect[data-color='3'] { fill: #ffefff; }
