@@ -3,6 +3,7 @@ class Forth {
 		this.ops = {};
 		this.stack = [];
 		this.prog = [];
+		this.ctxs = { forth: this };
 
 		// used by : and :noname
 		let read_fn = (th) => {
@@ -17,147 +18,140 @@ class Forth {
 		};
 
 		/* ====== [COMMENT] ====== */
-		this.ops['('] = (th) => {
+		this.ops['('] = ({forth: f}) => {
 			let tok = '(';
 			while (tok !== ')') {
 				tok = this.next_cmd();
 			}
 		};
 		/* ====== [STACK OPERATIONS] ====== */
-		this.ops['dup'] = (th) => {
-			th.push(last(th.stack));
+		this.ops['dup'] = ({forth: f}) => {
+			f.push(last(f.stack));
 		};
-		this.ops['2dup'] = (th) => {
-			th.stack = th.stack.concat(th.stack.slice(-2));
+		this.ops['2dup'] = ({forth: f}) => {
+			f.stack = f.stack.concat(f.stack.slice(-2));
 		};
-		this.ops['drop'] = (th) => {
-			th.pop();
+		this.ops['drop'] = ({forth: f}) => {
+			f.pop();
 		};
-		this.ops['nip'] = (th) => {
-			th.stack[th.stack.length - 2] = last(th.stack);
-			th.pop();
+		this.ops['nip'] = ({forth: f}) => {
+			f.stack[f.stack.length - 2] = last(f.stack);
+			f.pop();
 		};
-		this.ops['swap'] = (th) => {
-			let t = last(th.stack);
-			th.stack[th.stack.length - 1] = th.stack[th.stack.length - 2];
-			th.stack[th.stack.length - 2] = t;
+		this.ops['swap'] = ({forth: f}) => {
+			let t = last(f.stack);
+			f.stack[f.stack.length - 1] = f.stack[f.stack.length - 2];
+			f.stack[f.stack.length - 2] = t;
 		}
-		this.ops['2swap'] = (th) => {
-			let [n4, n3] = th.stack.slice(-2);
-			th.stack[th.stack.length - 1] = th.stack[th.stack.length - 3];
-			th.stack[th.stack.length - 2] = th.stack[th.stack.length - 4];
-			th.stack[th.stack.length - 3] = n3;
-			th.stack[th.stack.length - 4] = n4;
+		this.ops['2swap'] = ({forth: f}) => {
+			let [n4, n3] = f.stack.slice(-2);
+			f.stack[f.stack.length - 1] = f.stack[f.stack.length - 3];
+			f.stack[f.stack.length - 2] = f.stack[f.stack.length - 4];
+			f.stack[f.stack.length - 3] = n3;
+			f.stack[f.stack.length - 4] = n4;
 		}
 		// rotates stack left [1,2,3] -> [2,3,1]
-		this.ops['rol'] = (th) => {
-			let num = th.pop();
-			let head = th.stack.splice(num);
-			th.stack = head.concat(th.stack);
+		this.ops['rol'] = ({forth: f}) => {
+			let num = f.pop();
+			let head = f.stack.splice(num);
+			f.stack = head.concat(f.stack);
 		}
 		// rotates stack right [1,2,3] -> [3,1,2]
-		this.ops['ror'] = (th) => {
-			let num = th.pop();
-			let tail = th.stack.splice(-num);
-			th.stack = tail.concat(th.stack);
-		}
-		this.ops['.'] = (th) => {
-			console.log(last(th.stack));
-		}
-		this.ops['.s'] = (th) => {
-			let st = this.stack.map((el) => {return el.toString();}).join(' ');
-			console.log(`<${this.stack.length}> ${st}`);
+		this.ops['ror'] = ({forth: f}) => {
+			let num = f.pop();
+			let tail = f.stack.splice(-num);
+			f.stack = tail.concat(f.stack);
 		}
 		/* ====== [ARITHMETICS] ====== */
-		this.ops['+'] = (th) => { th.push(th.pop() + th.pop()); };
-		this.ops['-'] = (th) => {
-			let n = th.pop();
-			th.push(th.pop() - n);
+		this.ops['+'] = ({forth: f}) => { f.push(f.pop() + f.pop()); };
+		this.ops['-'] = ({forth: f}) => {
+			let n = f.pop();
+			f.push(f.pop() - n);
 		};
-		this.ops['*'] = (th) => { th.push(th.pop() * th.pop()); };
-		this.ops['/'] = (th) => {
-			let n = th.pop();
-			th.push(th.pop() / n);
+		this.ops['*'] = ({forth: f}) => { f.push(f.pop() * f.pop()); };
+		this.ops['/'] = ({forth: f}) => {
+			let n = f.pop();
+			f.push(f.pop() / n);
 		};
-		this.ops['%'] = (th) => {
-			let n = th.pop();
-			th.push(th.pop() % n);
+		this.ops['%'] = ({forth: f}) => {
+			let n = f.pop();
+			f.push(f.pop() % n);
 		};
-		this.ops['**'] = (th) => {
-			let n = th.pop();
-			th.push(th.pop() ** n);
+		this.ops['**'] = ({forth: f}) => {
+			let n = f.pop();
+			f.push(f.pop() ** n);
 		};
-		this.ops['++'] = (th) => { th.stack[th.stack.length-1]++; };
-		this.ops['--'] = (th) => { th.stack[th.stack.length-1]--; };
+		this.ops['++'] = ({forth: f}) => { f.stack[f.stack.length-1]++; };
+		this.ops['--'] = ({forth: f}) => { f.stack[f.stack.length-1]--; };
 		/* ====== [LOGIC] ====== */
-		this.ops['&&'] = (th) => { th.push(th.pop() && th.pop()); };
-		this.ops['||'] = (th) => { th.push(th.pop() || th.pop()); };
-		this.ops['>'] = (th) => {
-			let n = th.pop();
-			th.push(th.pop() > n);
+		this.ops['&&'] = ({forth: f}) => { f.push(f.pop() && f.pop()); };
+		this.ops['||'] = ({forth: f}) => { f.push(f.pop() || f.pop()); };
+		this.ops['>'] = ({forth: f}) => {
+			let n = f.pop();
+			f.push(f.pop() > n);
 		};
-		this.ops['<'] = (th) => {
-			let n = th.pop();
-			th.push(th.pop() < n);
+		this.ops['<'] = ({forth: f}) => {
+			let n = f.pop();
+			f.push(f.pop() < n);
 		};
-		this.ops['=='] = (th) => { th.push(th.pop() === th.pop()); };
-		this.ops['!='] = (th) => { th.push(th.pop() !== th.pop()); };
-		this.ops['not'] = (th) => { th.push(!th.pop()); };
+		this.ops['=='] = ({forth: f}) => { f.push(f.pop() === f.pop()); };
+		this.ops['!='] = ({forth: f}) => { f.push(f.pop() !== f.pop()); };
+		this.ops['not'] = ({forth: f}) => { f.push(!f.pop()); };
 		/* ====== [BRANCHING] ====== */
-		this.ops['if'] = (th) => {
+		this.ops['if'] = ({forth: f}) => {
 			let tok;
-			if (th.pop()) {
+			if (f.pop()) {
 				// condition is true
 				while (true) {
-					tok = th.next_cmd();
+					tok = f.next_cmd();
 					if (tok === 'else') break;
 					if (tok === 'then') return;
-					th.operate(tok);
+					f.operate(tok);
 				}
 				// else
-				while (th.next_cmd() !== 'then');
+				while (f.next_cmd() !== 'then');
 			} else {
 				// condition is false
 				while (true) {
-					tok = th.next_cmd();
+					tok = f.next_cmd();
 					if (tok === 'else') break;
 					if (tok === 'then') return;
 				}
 				// else
 				while (true) {
-					tok = th.next_cmd();
+					tok = f.next_cmd();
 					if (tok === 'then') return;
-					th.operate(tok);
+					f.operate(tok);
 				}
 			}
 		};
-		this.ops['while'] = (th) => {
+		this.ops['while'] = ({forth: f}) => {
 			let tok;
 			let cond = [];
 			let body = [];
-			while ((tok = th.next_cmd()) !== 'do') {
+			while ((tok = f.next_cmd()) !== 'do') {
 				cond.push(tok);
 			}
-			cond = th.compile(cond);
-			while ((tok = th.next_cmd()) !== 'done') {
+			cond = f.compile(cond);
+			while ((tok = f.next_cmd()) !== 'done') {
 				body.push(tok);
 			}
-			body = th.compile(body);
+			body = f.compile(body);
 			// actual while body. Damn, it's so C!
-			while (cond(th), last(th.stack)) {
-				body(th);
+			while (cond({forth: f}), last(f.stack)) {
+				body({forth: f});
 			}
 		};
 		/* ====== [FUNCTIONS] ====== */
-		this.ops[':'] = (th) => {
-			let name = th.next_cmd();
+		this.ops[':'] = ({forth: f}) => {
+			let name = f.next_cmd();
 			if (is_num(name)) {
 				throw new Error('Cannot use a number as a name.');
 			}
-			th.ops[name] = read_fn(th);
+			f.ops[name] = read_fn(f);
 		};
-		this.ops[':noname'] = (th) => { th.push(read_fn(th)); };
-		this.ops['execute'] = (th) => { th.pop()(th); }
+		this.ops[':noname'] = ({forth: f}) => { f.push(read_fn(f)); };
+		this.ops['execute'] = ({forth: f}) => { f.pop()(f); }
 	}
 	/* 
 	 * Underflow-aware version of this.prog.pop().
@@ -192,7 +186,7 @@ class Forth {
 	 */
 	operate(tok) {
 		if (this.is_op(tok)) {
-			this.ops[tok](this);
+			this.ops[tok](this.ctxs);
 		} else {
 			if (!is_num(tok)) {
 				throw new Error(`Unknown word: '${tok}'.`);
@@ -217,16 +211,33 @@ class Forth {
 		while (prog.length !== 0) {
 			let op = prog.pop();
 			if (this.is_op(op)) {
-				fun.push(`th.ops['${op}'](th);`);
+				fun.push(`ctx.forth.ops['${op}'](ctx);`);
 			} else {
 				if (!is_num(op)) {
 					throw new Error(`Unknown word: '${op}'.`);
 				}
-				fun.push(`th.push(${parseInt(op)});`);
+				fun.push(`ctx.forth.push(${parseInt(op)});`);
 			}
 		}
-		fun = `(th) => { ${fun.join(' ')} }`;
+		fun = `(ctx) => { ${fun.join(' ')} }`;
 		return eval(fun);
+	}
+	/* loads a module with functions and context */
+	modload(module) {
+		if (module.ctx_name === undefined) {
+			throw new Error('No ctx_name given, make sure your module exports it.');
+		}
+		if (module.ops === undefined) {
+			throw new Error('No ops given, make sure your module exports it.');
+		}
+		this.ctxs[module.ctx_name] = module;
+		let mops = module.ops;
+		for (let n in mops) {
+			if (Object.keys(this.ops).includes(n)) {
+				console.warning(`Module ${module.ctx_name} overwrites ${n}.`);
+			}
+			this.ops[n] = mops[n];
+		}
 	}
 }
 

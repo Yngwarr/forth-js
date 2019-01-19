@@ -20,9 +20,21 @@ class REPL {
 			th.el_input.value = '';
 		});
 
+		this.export_forth();
 		this.print("FORTH.js or whatever\nMade by me not so far ago.");
 	}
 	print(line) {
 		this.el_log.textContent += `${line}\n`;
+	}
+	export_forth() {
+		this.ctx_name = 'repl';
+		this.ops = {};
+		this.ops['.'] = ({forth: f, repl: r}) => {
+			r.print(last(f.stack) || '');
+		}
+		this.ops['.s'] = ({forth: f, repl: r}) => {
+			let st = f.stack.map(el => el.toString()).join(' ');
+			r.print(`<${f.stack.length}> ${st}`);
+		}
 	}
 }
