@@ -5,9 +5,23 @@
 		<title>FORTH on JS test</title>
 		<link href='./css/main.css' rel='stylesheet'>
 		<script src='./js/forth.js'></script>
+		<script src='./js/repl.js'></script>
+		<script src='./js/display.js'></script>
 		<script src='./js/main.js'></script>
 	</head>
 	<body onload='init()'>
-		<p>Wabulabudupdup!</p>
+		<div id='wrapper'>
+			<div id='disp'></div>
+			<div id='repl'>
+				<div id='repl-screen'>
+					<div id='log'></div>
+					<div class='anchor'></div>
+				</div>
+				<p id='line'>
+					<span id='prompt'>&gt;&nbsp;</span>
+					<input id='input' type='text'>
+				</p>
+			</div>
+		</div>
 	</body>
 </html>

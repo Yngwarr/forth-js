@@ -4,3 +4,63 @@
 html {
 	font-size: 10px;
 }
+
+#game {
+	border: 1px solid black;
+}
+
+#wrapper {
+	display: flex;
+	flex-flow: column nowrap;
+	width: 100vw;
+	height: 100vh;
+}
+
+#disp {
+	background: #5f5;
+	width: 100vw;
+	height: 50vh;
+}
+
+/******** REPL ********/
+
+#repl {
+	display: flex;
+	flex-flow: column nowrap;
+	background: #f55;
+	width: 100vw;
+	height: 50vh;
+	font-size: 1.4rem;
+	font-family: monospace;
+}
+
+#repl > * {
+	margin: 0 1rem;
+}
+
+#log {
+	white-space: pre-wrap;
+	line-height: 1.2;
+}
+
+#repl-screen {
+	max-height: 90%;
+	overflow-y: auto;
+}
+
+#line {
+	display: flex;
+	flex-flow: row nowrap;
+	margin-top: 0.4rem;
+}
+
+#input {
+	background: transparent;
+	border: none;
+	font-family: monospace;
+	width: 100%;
+}
+
+#input:focus {
+	outline: none;
+}

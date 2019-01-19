@@ -27,6 +27,9 @@ class Forth {
 		this.ops['dup'] = (th) => {
 			th.push(last(th.stack));
 		};
+		this.ops['2dup'] = (th) => {
+			th.stack = th.stack.concat(th.stack.slice(-2));
+		};
 		this.ops['drop'] = (th) => {
 			th.pop();
 		};
@@ -186,7 +189,7 @@ class Forth {
 	/*
 	 * Execute a given command. Takes string as a parameter and executes it
 	 * if known. Otherwise, converts it to a number and pushes to stack.
-	 * */
+	 */
 	operate(tok) {
 		if (this.is_op(tok)) {
 			this.ops[tok](this);
