@@ -12,6 +12,8 @@ function init() {
 
 	disp.init();
 
+	forth.load_file('./sample.fs');
+
 	repl.el_input.focus();
-	forth.exec(': sq5 5 dup * ;');
+	//forth.exec(': sq5 5 dup * ;');
 }

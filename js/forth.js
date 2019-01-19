@@ -6,6 +6,31 @@ class Forth {
 		this.ctxs = { forth: this };
 		this.export_forth();
 	}
+	load_file(url) {
+		let req = new XMLHttpRequest();
+		req.open('GET', url, true);
+		req.send(null);
+		req.onreadystatechange = () => {
+			if (req.readyState !== 4 || req.status !== 200
+				|| req.getResponseHeader('Content-Type')
+				.indexOf("application/octet-stream") < 0) return;
+
+			//req.responseText !== '' && procJson(req.responseText);
+			this.run_program(req.responseText, url);
+		}
+	}
+	/* runs a multiline program */
+	// TODO multiline while and if blocks support
+	run_program(text, filename) {
+		let prog = text.split('\n');
+		for (let i = 0; i < prog.length; ++i) {
+			try {
+				this.exec(prog[i]);
+			} catch (e) {
+				console.error(`${e.name} on ${filename}:${i+1}: ${e.message}`);
+			}
+		}
+	}
 	/* 
 	 * Underflow-aware version of this.prog.pop().
 	 * Pass true to be unaware again (used in exec).
@@ -33,11 +58,15 @@ class Forth {
 	is_op(op) {
 		return Object.keys(this.ops).includes(op);
 	}
+	is_keyword(w) {
+		return ['while', 'if', 'do', 'done', 'then', 'else'].includes(w);
+	}
 	/*
 	 * Execute a given command. Takes string as a parameter and executes it
 	 * if known. Otherwise, converts it to a number and pushes to stack.
 	 */
 	operate(tok) {
+		if (tok === '') return;
 		if (this.is_op(tok)) {
 			this.ops[tok](this.ctxs);
 		} else {
@@ -49,6 +78,7 @@ class Forth {
 	}
 	/* tokenize and execute a program given as a text */
 	exec(text) {
+		if (text.length === 0) return;
 		this.prog = text.split(/\s+/).reverse();
 		this.prog = this.prog.map((el) => { return el.toLowerCase(); });
 		while (this.prog.length) {
@@ -58,18 +88,39 @@ class Forth {
 		//console.log(this.stack);
 	}
 	/* creates an executable function from a list of tokens */
-	compile(prog) {
+	/* flag is used for `if`, it's a crap code... TODO revisit */
+	compile(prog, until, flag) {
 		let fun = [];
-		prog.reverse();
+		if (!until) prog.reverse();
 		while (prog.length !== 0) {
 			let op = prog.pop();
-			if (this.is_op(op)) {
+			/* saves your ass from `then`, `do` and `done`*/
+			if (until && op === until) break;
+			if (this.is_op(op) && !this.is_keyword(op)) {
 				fun.push(`ctx.forth.ops['${op}'](ctx);`);
 			} else {
-				if (!is_num(op)) {
+				// TODO bad design, extra else breaks the function
+				if (op === 'else') {
+					if (until !== 'then') {
+						throw new Error(`Unexpected 'else'.`);
+					}
+					flag.push('on_else')
+					break;
+				} else if (op === 'if') {
+					fun.push("if (ctx.forth.pop())");
+					let fl = [];
+					fun.push(` { (${this.compile(prog, 'then', fl)})(ctx) }`);
+					if (fl.length > 0) {
+						fun.push(`else { (${this.compile(prog, 'then')})(ctx) }`);
+					}
+				} else if (op === 'while') {
+					fun.push(`while ((${this.compile(prog, 'do')})(ctx),` +
+						`ctx.forth.pop()) {(${this.compile(prog, 'done')})(ctx)}`);
+				} else if (is_num(op)) {
+					fun.push(`ctx.forth.push(${parseInt(op)});`);
+				} else {
 					throw new Error(`Unknown word: '${op}'.`);
 				}
-				fun.push(`ctx.forth.push(${parseInt(op)});`);
 			}
 		}
 		fun = `(ctx) => { ${fun.join(' ')} }`;
@@ -238,6 +289,7 @@ class Forth {
 			f.push(!f.pop());
 		};
 		/* ====== [BRANCHING] ====== */
+		/* ex.: `1 1 == if 1 else 0 then` */
 		this.ops['if'] = ({forth: f}) => {
 			f.chk_underflow(1);
 			let tok;

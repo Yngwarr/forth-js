@@ -63,19 +63,13 @@ class Display {
 			const x = f.pop();
 			this.mv_cursor(x, y);
 		}
+		this.ops['cur-step'] = ({disp: d}) => {
+			d.step_cursor();
+		}
 		// TODO dependency control
 		this.ops['.cur'] = ({disp: d, repl: r}) => {
 			let [x, y] = d.cursor;
 			r.print(`(${x}, ${y})`);
 		}
-		/*this.ops['.'] = ({forth: f, repl: r}) => {
-			let p = last(f.stack);
-			p = p === undefined ? '' : p;
-			r.print(p);
-		}
-		this.ops['.s'] = ({forth: f, repl: r}) => {
-			let st = f.stack.map(el => el.toString()).join(' ');
-			r.print(`<${f.stack.length}> ${st}`);
-		}*/
 	}
 }
