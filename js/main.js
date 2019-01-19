@@ -5,7 +5,7 @@ let repl;
 function init() {
 	forth = new Forth();
 	disp = new Display(320, 240, 16);
-	repl = new REPL('log', 'line');
+	repl = new REPL(forth, 'log', 'line');
 
 	forth.modload(repl);
 

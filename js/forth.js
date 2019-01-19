@@ -26,24 +26,29 @@ class Forth {
 		};
 		/* ====== [STACK OPERATIONS] ====== */
 		this.ops['dup'] = ({forth: f}) => {
+			f.chk_underflow(1);
 			f.push(last(f.stack));
 		};
 		this.ops['2dup'] = ({forth: f}) => {
+			f.chk_underflow(2);
 			f.stack = f.stack.concat(f.stack.slice(-2));
 		};
 		this.ops['drop'] = ({forth: f}) => {
 			f.pop();
 		};
 		this.ops['nip'] = ({forth: f}) => {
+			f.chk_underflow(2);
 			f.stack[f.stack.length - 2] = last(f.stack);
 			f.pop();
 		};
 		this.ops['swap'] = ({forth: f}) => {
+			f.chk_underflow(2);
 			let t = last(f.stack);
 			f.stack[f.stack.length - 1] = f.stack[f.stack.length - 2];
 			f.stack[f.stack.length - 2] = t;
 		}
 		this.ops['2swap'] = ({forth: f}) => {
+			f.chk_underflow(4);
 			let [n4, n3] = f.stack.slice(-2);
 			f.stack[f.stack.length - 1] = f.stack[f.stack.length - 3];
 			f.stack[f.stack.length - 2] = f.stack[f.stack.length - 4];
@@ -52,53 +57,89 @@ class Forth {
 		}
 		// rotates stack left [1,2,3] -> [2,3,1]
 		this.ops['rol'] = ({forth: f}) => {
+			if (f.stack.length < 2) return;
 			let num = f.pop();
 			let head = f.stack.splice(num);
 			f.stack = head.concat(f.stack);
 		}
 		// rotates stack right [1,2,3] -> [3,1,2]
 		this.ops['ror'] = ({forth: f}) => {
+			if (f.stack.length < 2) return;
 			let num = f.pop();
 			let tail = f.stack.splice(-num);
 			f.stack = tail.concat(f.stack);
 		}
 		/* ====== [ARITHMETICS] ====== */
-		this.ops['+'] = ({forth: f}) => { f.push(f.pop() + f.pop()); };
+		this.ops['+'] = ({forth: f}) => {
+			f.chk_underflow(2);
+			f.push(f.pop() + f.pop());
+		};
 		this.ops['-'] = ({forth: f}) => {
+			f.chk_underflow(2);
 			let n = f.pop();
 			f.push(f.pop() - n);
 		};
-		this.ops['*'] = ({forth: f}) => { f.push(f.pop() * f.pop()); };
+		this.ops['*'] = ({forth: f}) => {
+			f.chk_underflow(2);
+			f.push(f.pop() * f.pop());
+		};
 		this.ops['/'] = ({forth: f}) => {
+			f.chk_underflow(2);
 			let n = f.pop();
 			f.push(f.pop() / n);
 		};
 		this.ops['%'] = ({forth: f}) => {
+			f.chk_underflow(2);
 			let n = f.pop();
 			f.push(f.pop() % n);
 		};
 		this.ops['**'] = ({forth: f}) => {
+			f.chk_underflow(2);
 			let n = f.pop();
 			f.push(f.pop() ** n);
 		};
-		this.ops['++'] = ({forth: f}) => { f.stack[f.stack.length-1]++; };
-		this.ops['--'] = ({forth: f}) => { f.stack[f.stack.length-1]--; };
+		this.ops['++'] = ({forth: f}) => {
+			f.chk_underflow(1);
+			f.stack[f.stack.length-1]++;
+		};
+		this.ops['--'] = ({forth: f}) => {
+			f.chk_underflow(1);
+			f.stack[f.stack.length-1]--;
+		};
 		/* ====== [LOGIC] ====== */
-		this.ops['&&'] = ({forth: f}) => { f.push(f.pop() && f.pop()); };
-		this.ops['||'] = ({forth: f}) => { f.push(f.pop() || f.pop()); };
+		this.ops['&&'] = ({forth: f}) => {
+			f.chk_underflow(2);
+			f.push(f.pop() && f.pop());
+		};
+		this.ops['||'] = ({forth: f}) => {
+			f.chk_underflow(2);
+			f.push(f.pop() || f.pop());
+		};
 		this.ops['>'] = ({forth: f}) => {
+			f.chk_underflow(2);
 			let n = f.pop();
 			f.push(f.pop() > n);
 		};
 		this.ops['<'] = ({forth: f}) => {
+			f.chk_underflow(2);
 			let n = f.pop();
 			f.push(f.pop() < n);
 		};
-		this.ops['=='] = ({forth: f}) => { f.push(f.pop() === f.pop()); };
-		this.ops['!='] = ({forth: f}) => { f.push(f.pop() !== f.pop()); };
-		this.ops['not'] = ({forth: f}) => { f.push(!f.pop()); };
+		this.ops['=='] = ({forth: f}) => {
+			f.chk_underflow(2);
+			f.push(f.pop() === f.pop());
+		};
+		this.ops['!='] = ({forth: f}) => {
+			f.chk_underflow(2);
+			f.push(f.pop() !== f.pop());
+		};
+		this.ops['not'] = ({forth: f}) => {
+			f.chk_underflow(1);
+			f.push(!f.pop());
+		};
 		/* ====== [BRANCHING] ====== */
 		this.ops['if'] = ({forth: f}) => {
+			f.chk_underflow(1);
 			let tok;
 			if (f.pop()) {
 				// condition is true
@@ -159,7 +200,7 @@ class Forth {
 	 */
 	next_cmd(loop) {
 		if (!loop && this.end()) {
-			throw new Error('Unexpected end of program.');
+			throw new Error('Unexpected end of the program.');
 		}
 		return this.prog.pop();
 	}
@@ -237,6 +278,14 @@ class Forth {
 				console.warning(`Module ${module.ctx_name} overwrites ${n}.`);
 			}
 			this.ops[n] = mops[n];
+		}
+	}
+	/* throws an exception on stack underflow */
+	chk_underflow(n) {
+		n = n || 1;
+		if (this.stack.length < n) {
+			throw new Error('Stack underflow' + (n === 1 ? '.'
+					: `, expected at least ${n} elements.`));
 		}
 	}
 }
