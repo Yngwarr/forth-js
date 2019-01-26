@@ -47,5 +47,17 @@ class REPL {
 			let st = f.stack.map(el => el.toString()).join(' ');
 			r.print(`<${f.stack.length}> ${st}`);
 		}
+		this.ops['."'] = ({forth: f, repl: r}) => {
+			let str = [];
+			let tok;
+			while (true) {
+				tok = f.next_cmd();
+				if (tok === '"') break;
+				str.push(tok);
+			}
+			// clear the '"' word
+			//f.next_cmd();
+			r.print(str.join(' '));
+		}
 	}
 }

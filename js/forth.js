@@ -172,7 +172,7 @@ class Forth {
 		this.ops['('] = ({forth: f}) => {
 			let tok = '(';
 			while (tok !== ')') {
-				tok = this.next_cmd();
+				tok = f.next_cmd();
 			}
 		};
 		/* ====== [STACK OPERATIONS] ====== */
