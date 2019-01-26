@@ -55,13 +55,29 @@ class Display {
 			f.chk_underflow(1);
 			const c = f.pop();
 			d.pt().dataset.color = c;
-			d.step_cursor();
+			//d.step_cursor();
 		}
 		this.ops['cur-mv'] = ({forth: f, disp: d}) => {
 			f.chk_underflow(2);
 			const y = f.pop();
 			const x = f.pop();
 			this.mv_cursor(x, y);
+		}
+		this.ops['cur-u'] = ({disp: d}) => {
+			let [x, y] = d.cursor;
+			d.cursor = [x, --y];
+		}
+		this.ops['cur-d'] = ({disp: d}) => {
+			let [x, y] = d.cursor;
+			d.cursor = [x, ++y];
+		}
+		this.ops['cur-l'] = ({disp: d}) => {
+			let [x, y] = d.cursor;
+			d.cursor = [--x, y];
+		}
+		this.ops['cur-r'] = ({disp: d}) => {
+			let [x, y] = d.cursor;
+			d.cursor = [++x, y];
 		}
 		this.ops['cur-step'] = ({disp: d}) => {
 			d.step_cursor();
