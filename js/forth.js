@@ -208,14 +208,18 @@ class Forth {
 		}
 		// rotates stack left [1,2,3] -> [2,3,1]
 		this.ops['rol'] = ({forth: f}) => {
-			if (f.stack.length < 2) return;
+			f.chk_underflow(1);
+			// not to rotate one element long stack
+			if (f.stack.length < 3) return;
 			let num = f.pop();
 			let head = f.stack.splice(num);
 			f.stack = head.concat(f.stack);
 		}
 		// rotates stack right [1,2,3] -> [3,1,2]
 		this.ops['ror'] = ({forth: f}) => {
-			if (f.stack.length < 2) return;
+			f.chk_underflow(1);
+			// not to rotate one element long stack
+			if (f.stack.length < 3) return;
 			let num = f.pop();
 			let tail = f.stack.splice(-num);
 			f.stack = tail.concat(f.stack);
@@ -346,7 +350,9 @@ class Forth {
 			f.ops[name] = read_fn(f);
 		};
 		this.ops[':noname'] = ({forth: f}) => { f.push(read_fn(f)); };
-		this.ops['execute'] = ({forth: f}) => { f.pop()(f); }
+		this.ops['exec'] = (ctx) => {
+			(ctx.forth.pop())(ctx);
+		}
 	}
 }
 
